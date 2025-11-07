@@ -1,3 +1,17 @@
+Program-1 
+
+1. pwd 
+2. hdfs dfs -ls /
+3. hdfs dfs -ls /user
+4. hdfs dfs -mkdir /user/root/demodir
+5. hdfs dfs -ls /user/root/
+6. cd Desktop // since file is on Desktop
+7. hdfs dfs -copyFromLocal temp.txt /user/root/demodir
+8. hdfs dfs -ls /user/root/demodir
+9. hdfs dfs -cat /user/root/demodir/temp.txt
+
+Program-2
+
 import java.io.IOException;
 import java.util.HashMap;
 import org.apache.hadoop.conf.*;
@@ -26,8 +40,6 @@ key
 if (indicesAndValue[0].equals("M"))
 {
 for (int k = 0; k < p; k++)
-Big Data Analytics Lab Manual – BIS701
-Department of ISE Page 13
 {
 outputKey.set(indicesAndValue[1] + "," +
 k);
@@ -73,8 +85,6 @@ Float.parseFloat(value[2]));
 }
 int n =
 Integer.parseInt(context.getConfiguration().get("n"));
-Big Data Analytics Lab Manual – BIS701
-Department of ISE Page 14
 float result = 0.0f;
 for (int j = 0; j < n; j++)
 {
@@ -108,3 +118,219 @@ FileOutputFormat.setOutputPath(job, new Path(args[1]));
 job.waitForCompletion(true);
 }
 }
+
+
+Program-3
+
+import java.io.IOException;
+import java.util.Iterator;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.conf.Configuration;
+public class MyMaxMin {
+//Mapper
+public static class MaxTemperatureMapper extends
+Mapper<LongWritable, Text, Text, Text> {
+@Override
+public void map(LongWritable arg0, Text Value, Context
+context)
+throws IOException, InterruptedException {
+//Converting the record (single line) to String and
+storing it in a String variable line
+String line = Value.toString();
+//Checking if the line is not empty
+if (!(line.length() == 0))
+{
+ String date = line.substring(6, 14); //date
+float temp_Max = Float.parseFloat(line.substring(39,
+45).trim()); //maximum temperature
+float temp_Min = Float.parseFloat(line.substring(47,
+53).trim()); //minimum temperature
+//if maximum temperature is greater than 35 , its a hot day
+if (temp_Max > 35.0) {
+context.write(new Text("Hot Day " + date),new
+Text(String.valueOf(temp_Max))); // Hot day
+ }
+//if minimum temperature is less than 10 , its a cold day
+if (temp_Min < 10) {
+context.write(new Text("Cold Day " + date),new
+Text(String.valueOf(temp_Min))); // Cold day
+ }
+}
+}
+}
+//Reducer
+public static class MaxTemperatureReducer extends
+Reducer<Text, Text, Text, Text> {
+public void reduce(Text Key, Iterator<Text> Values,
+Context context)
+throws IOException, InterruptedException {
+//putting all the values in temperature variable of
+type String
+String temperature = Values.next().toString();
+context.write(Key, new Text(temperature));
+}
+}
+public static void main(String[] args) throws Exception {
+//reads the default configuration of cluster from the configuration
+xml files
+Configuration conf = new Configuration();
+//Initializing the job with the default configuration of the cluster
+Job job = new Job(conf, "weather example");
+
+job.setJarByClass(MyMaxMin.class); //Assigning the driver
+class name
+job.setMapOutputKeyClass(Text.class); //Key type coming
+out of mapper
+job.setMapOutputValueClass(Text.class); //value type
+coming out of mapper
+job.setMapperClass(MaxTemperatureMapper.class);
+//Defining the mapper class name
+job.setReducerClass(MaxTemperatureReducer.class);
+//Defining the reducer class name
+//Defining input Format class which is responsible to
+parse the dataset into a key value pair
+job.setInputFormatClass(TextInputFormat.class);
+//Defining output Format class which is responsible to
+parse the dataset into a key value pair
+job.setOutputFormatClass(TextOutputFormat.class);
+//setting the second argument as a path in a path variable
+Path OutputPath = new Path(args[1]);
+//Configuring the input path from the filesystem into the
+job
+FileInputFormat.addInputPath(job, new Path(args[0]));
+//Configuring the output path from the filesystem into the
+job
+FileOutputFormat.setOutputPath(job, new Path(args[1]));
+//deleting the context path automatically from hdfs so
+that we don't have delete it explicitly
+OutputPath.getFileSystem(conf).delete(OutputPath);
+//exiting the job only if the flag value becomes false
+System.exit(job.waitForCompletion(true) ? 0 : 1);
+}
+}
+
+
+Program-4
+
+import java.io.IOException;
+import java.util.*;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.*;
+import org.apache.hadoop.mapreduce.*;
+import org.apache.hadoop.mapreduce.lib.input.*;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+public class MovieTagsJoin {
+public static class MovieMapper extends Mapper<LongWritable,
+Text, Text, Text> {
+public void map(LongWritable key, Text value, Context
+context)
+throws IOException, InterruptedException {
+String line = value.toString();
+if (key.get() == 0 && line.contains("movieId"))
+return; // skip header
+String[] fields = line.split(",", 3); //
+movieId,title,genres
+if (fields.length >= 2) {
+String movieId = fields[0].trim();
+String title = fields[1].trim();
+context.write(new Text(movieId), new
+Text("MOVIE::" + title));
+}
+}
+}
+public static class TagMapper extends Mapper<LongWritable, Text,
+Text, Text> {
+public void map(LongWritable key, Text value, Context
+context)
+throws IOException, InterruptedException {
+String line = value.toString(); // Read the line from
+the tags.txt
+if (key.get() == 0 && line.contains("userId"))
+return; // skip header
+String[] fields = line.split(",", 4); //
+userId,movieId,tag,timestamp
+if (fields.length >= 3) {
+String movieId = fields[1].trim();
+String tag = fields[2].trim();
+context.write(new Text(movieId), new
+Text("TAG::" + tag));
+}
+}
+}
+public static class JoinReducer extends Reducer<Text, Text,
+Text, Text> {
+public void reduce(Text key, Iterable<Text> values,
+Context context)
+throws IOException, InterruptedException {
+String movieTitle = null;
+List<String> tags = new ArrayList<>();
+for (Text val : values) {
+String value = val.toString();
+if (value.startsWith("MOVIE::"))
+movieTitle = value.substring(7);
+else if (value.startsWith("TAG::"))
+tags.add(value.substring(5));
+}
+if (movieTitle != null && !tags.isEmpty()) {
+context.write(new Text(movieTitle), new
+Text("," + tags));
+}
+}
+}
+public static void main(String[] args) throws Exception {
+Configuration conf = new Configuration();
+Job job = Job.getInstance(conf, "Movie Tags Join");
+job.setJarByClass(MovieTagsJoin.class);
+// Set Mappers
+MultipleInputs.addInputPath(job, new Path(args[0]),
+TextInputFormat.class, MovieMapper.class);
+MultipleInputs.addInputPath(job, new Path(args[1]),
+TextInputFormat.class, TagMapper.class);
+job.setReducerClass(JoinReducer.class);
+// Output Types
+job.setOutputKeyClass(Text.class);
+job.setOutputValueClass(Text.class);
+FileOutputFormat.setOutputPath(job, new Path(args[2]));
+job.waitForCompletion(true);
+}
+}
+
+
+Program-5
+
+MongoDB Operations: Count, Sort, Limit, Skip, Aggregate
+shop_db> use college_db
+switched to db college_db
+1. Count Documents
+Count all documents:
+db.student.countDocuments()
+Count with a condition (e.g., marks > 80):
+db.student.countDocuments({ marks: { $gt: 80 } })
+2. Sort Documents
+Sort by marks in descending order:
+db.student.find().sort({ marks: -1 })
+Sort by name ascending and age descending:
+db.student.find().sort({ name: 1, age: -1 })
+3. Limit Results
+Return top 5 students:
+db.student.find().limit(5)
+4. Skip Documents
+Skip first 5 documents and get the next 5:
+db.student.find().skip(5).limit(5)
+5. Aggregate Documents
+Group by Department and Count Students:
+db.student.aggregate([ { $group: { _id: "$department", totalStudents: {
+$sum: 1 } } } ])
+Group by Department and Average Marks:
+db.student.aggregate([ { $group: { _id: "$department", avgMarks: { $avg:
+"$marks" } } } ])
