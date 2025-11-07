@@ -1,3 +1,39 @@
+# --- Eclipse Project Setup & Export ---
+# 1. Create Project
+Eclipse -> new Java Project -> package -> class
+ 
+# 2. Add Hadoop Libraries (JARs)
+main project -> right click -> build path -> configure -> add external jar -> [Navigate to your Hadoop installation directory and find the necessary JARs]
+(Common paths: file system/usr/lib/hadoop or client folders)
+Select all necessary yellow jar files for the client.
+ 
+# 3. Export to Runnable JAR
+project -> right click -> export -> Java -> JAR file
+Next -> (Ensure "Export generated class files and resources" and "Export class files with compilation errors" are ticked if needed)
+Browse JAR File location -> Create new jar file (e.g., Mralind.jar)
+Next -> Next -> Main class browse -> select your main class name -> Finish
+ 
+# --- Terminal/Hadoop Execution Commands ---
+# 4. Navigate and Setup HDFS Directories
+cd Desktop
+ 
+# 5. Create Input Directory in HDFS
+hdfs dfs -mkdir /matin
+ 
+# 6. Copy Input Files from Local System to HDFS
+# (Assuming your input files are Malmul.txt and Matrul.txt)
+hdfs dfs -copyFromLocal Malmul.txt Matrul.txt /matin
+ 
+# 7. (Optional) Verify Input File Content
+hdfs dfs -cat /matin/Malmul.txt
+ 
+# 8. Execute the MapReduce Job
+# (Using the JAR file created in step 3, with input /matin and output /matout)
+hadoop jar Mralind.jar [MainClassPathOrAnyArg] /matin /matout
+ 
+# 9. View the Job Output
+hdfs dfs -cat /matout/part-r-00000
+
 Program-1 
 
 1. pwd 
