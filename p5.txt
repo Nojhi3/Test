@@ -6,8 +6,7 @@ int main(int argc, char** argv) {
     int rank, size;
     MPI_Status status;
 
-    // Initialize MPI
-    MPI_Init(&argc, &argv);
+    // Initialize
 
     // Get current process rank and total number of processes
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
